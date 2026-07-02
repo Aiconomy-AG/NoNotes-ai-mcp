@@ -7,9 +7,7 @@ API as tools an LLM connector (ChatGPT, Claude) can call — "check my notes",
 ## How it works
 
 ```
-ChatGPT ──OAuth 2.1 (PKCE)──▶ Notes MCP Server ──Bearer (Sanctum PAT)──▶ Laravel API
-          (this server is its own                 (minted at consent-time
-           OAuth authorization server)             from the user's login)
+LLM ──OAuth 2.1 (PKCE) -> Notes MCP Server -- Bearer (Sanctum PAT) --> Laravel API
 ```
 
 1. ChatGPT discovers this server's OAuth metadata and dynamically registers itself.
@@ -82,16 +80,16 @@ TRANSPORT=stdio NOTES_API_TOKEN='1|abc…' npm run inspect
 Or drive it over HTTP with the Inspector pointed at `http://localhost:PORT/mcp`
 (it will walk you through the OAuth login flow).
 
-## Connecting ChatGPT (remote / production)
+## Connecting LLM (remote / production)
 
-ChatGPT connectors require a **public HTTPS** URL and OAuth. For local dev, expose
+LLM connectors require a **public HTTPS** URL and OAuth. For local dev, expose
 the server through a tunnel:
 
 ```bash
-# Terminal 1 — the MCP server
+# Terminal 1 - the MCP server
 npm run build && npm start
 
-# Terminal 2 — a tunnel (either works)
+# Terminal 2 - a tunnel (either works)
 cloudflared tunnel --url http://localhost:3100
 #   or
 ngrok http 3100
@@ -100,23 +98,7 @@ ngrok http 3100
 Set `MCP_SERVER_URL` in `.env` to the **https** tunnel URL and restart the server
 (the OAuth issuer/redirects must match the public URL).
 
-Then in ChatGPT: **Settings → Connectors → Create/Add custom connector**, and enter
-`https://YOUR-TUNNEL/mcp` as the MCP server URL. ChatGPT will:
-register itself → send you to the Notes login page → after login, connect. The
+Then in LLM: **Settings → Connectors → Create/Add custom connector**, and enter
+`https://YOUR-TUNNEL/mcp` as the MCP server URL. LLM will:
+register itself -> send you to the Notes login page -> after login, connect. The
 tools then appear in Developer mode / when the connector is enabled in a chat.
-
-> Note: ChatGPT's custom-connector UI and exact menu names change over time —
-> verify against current OpenAI docs. The server implements the standard pieces
-> ChatGPT needs: RFC 9728 protected-resource metadata, RFC 8414 authorization-server
-> metadata, dynamic client registration, PKCE (S256), and refresh tokens.
-
-## Security notes
-
-- The consent page handles raw credentials only to mint a token; it never stores
-  the password. Only the resulting Sanctum token is persisted in backend MySQL.
-- `POST /api/mcp/token` is throttled (`throttle:10,1`) on the backend.
-- Serve over HTTPS in production and keep `MCP_STORAGE_SECRET` private.
-- Revoke a connection by deleting the user's `mcp-connector` token in the app
-  (Sanctum `personal_access_tokens` table) and/or clearing the backend
-  `oauth_tokens` rows.
-```
