@@ -15,15 +15,15 @@ const PAGE_HEAD = `<!DOCTYPE html>
 <title>Connect to Notes</title>
 <style>
   *{margin:0;padding:0;box-sizing:border-box}
-  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#f5f5f7;display:flex;justify-content:center;align-items:center;min-height:100vh;color:#1d1d1f;padding:16px}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#1b1b1d;display:flex;justify-content:center;align-items:center;min-height:100vh;color:#1d1d1f;padding:16px}
   .card{background:#fff;border-radius:16px;box-shadow:0 4px 24px rgba(0,0,0,.08);max-width:400px;width:100%;padding:36px 32px}
-  .logo{font-size:22px;font-weight:700;color:#2563eb;margin-bottom:4px}
+  .logo{font-size:22px;font-weight:700;color:#d71921;margin-bottom:4px}
   .subtitle{font-size:14px;color:#6e6e73;margin-bottom:24px}
   label{display:block;font-size:13px;font-weight:600;margin:14px 0 6px}
   input{width:100%;padding:11px 12px;border:1px solid #d2d2d7;border-radius:9px;font-size:15px}
-  input:focus{outline:none;border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.15)}
-  button{width:100%;margin-top:22px;padding:12px;background:#2563eb;color:#fff;border:none;border-radius:9px;font-size:15px;font-weight:600;cursor:pointer}
-  button:hover{background:#1d4ed8}
+  input:focus{outline:none;border-color:#d71921;box-shadow:0 0 0 3px rgb(120 17 20)}
+  button{width:100%;margin-top:22px;padding:12px;background:#d71921;color:#fff;border:none;border-radius:9px;font-size:15px;font-weight:600;cursor:pointer}
+  button:hover{background:#d71921}
   .err{background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;border-radius:9px;padding:10px 12px;font-size:13px;margin-bottom:16px}
   .scopes{font-size:12px;color:#6e6e73;margin-top:18px;text-align:center}
   .check{font-size:44px;text-align:center;margin-bottom:12px}
