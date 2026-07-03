@@ -21,10 +21,19 @@ interface Note {
   id: number;
   title: string;
   blocks: Block[] | null;
+  folder_id: number | null;
   created_at?: string;
   updated_at?: string;
 }
 
+interface Folder {
+  id: number;
+  name: string;
+  parent_id: number | null;
+  sort_order?: number;
+  created_at?: string;
+  updated_at?: string;
+}
 
 let blockCounter = 0;
 function newBlockId(): string {
@@ -45,7 +54,7 @@ function blocksToText(blocks: Block[] | null): string {
 
 function summarize(note: Note) {
   const preview = blocksToText(note.blocks).replace(/\s+/g, " ").slice(0, 120);
-  return { id: note.id, title: note.title, updated_at: note.updated_at, preview };
+  return { id: note.id, title: note.title, folder_id: note.folder_id, updated_at: note.updated_at, preview };
 }
 
 function jsonResult(data: unknown) {
@@ -58,6 +67,97 @@ function jsonResult(data: unknown) {
 
 
 export function registerNoteTools(server: McpServer, config: NotesConfig): void {
+  server.registerTool(
+    "list_folders",
+    {
+      title: "List folders",
+      description:
+        "List all folders available to the user. Folders are nested by parent_id; " +
+        "root folders have parent_id null. Use folder ids when creating or moving notes.",
+      inputSchema: {},
+    },
+    async () => {
+      try {
+        const folders = await apiRequest<Folder[]>("api/folders", {}, config);
+        return jsonResult({ count: folders.length, folders });
+      } catch (err) {
+        return errorResult(formatApiError(err));
+      }
+    },
+  );
+
+  server.registerTool(
+    "create_folder",
+    {
+      title: "Create a folder",
+      description: "Create a folder or nested subfolder for organizing notes.",
+      inputSchema: {
+        name: z.string().optional().describe("Folder name. Defaults to 'Untitled folder'."),
+        parent_id: z.number().int().nullable().optional().describe("Parent folder id, or null/root if omitted."),
+      },
+    },
+    async ({ name, parent_id }) => {
+      try {
+        const created = await apiRequest<Folder>(
+          "api/folders",
+          { method: "POST", body: { name: name ?? "Untitled folder", parent_id: parent_id ?? null } },
+          config,
+        );
+        return jsonResult(created);
+      } catch (err) {
+        return errorResult(formatApiError(err));
+      }
+    },
+  );
+
+  server.registerTool(
+    "update_folder",
+    {
+      title: "Update a folder",
+      description:
+        "Rename a folder and/or move it under another folder. Set parent_id to null to move it to root.",
+      inputSchema: {
+        id: z.number().int().describe("Folder id."),
+        name: z.string().optional().describe("New folder name."),
+        parent_id: z.number().int().nullable().optional().describe("New parent folder id, or null for root."),
+      },
+    },
+    async ({ id, name, parent_id }) => {
+      try {
+        const body: Record<string, unknown> = {};
+        if (name !== undefined) body.name = name;
+        if (parent_id !== undefined) body.parent_id = parent_id;
+        if (Object.keys(body).length === 0) {
+          return errorResult("Nothing to update: provide `name` and/or `parent_id`.");
+        }
+        const updated = await apiRequest<Folder>(`api/folders/${id}`, { method: "PUT", body }, config);
+        return jsonResult(updated);
+      } catch (err) {
+        return errorResult(formatApiError(err));
+      }
+    },
+  );
+
+  server.registerTool(
+    "delete_folder",
+    {
+      title: "Delete a folder",
+      description:
+        "Delete a folder by id. Notes and subfolders inside it are moved to root by the backend foreign-key behavior.",
+      inputSchema: {
+        id: z.number().int().describe("Folder id."),
+      },
+    },
+    async ({ id }) => {
+      try {
+        await apiRequest(`api/folders/${id}`, { method: "DELETE" }, config);
+        return { content: [{ type: "text" as const, text: `Deleted folder ${id}.` }] };
+      } catch (err) {
+        return errorResult(formatApiError(err));
+      }
+    },
+  );
+
   server.registerTool(
     "list_notes",
     {
@@ -136,6 +236,7 @@ export function registerNoteTools(server: McpServer, config: NotesConfig): void 
         "If neither is given, an empty note is created.",
       inputSchema: {
         title: z.string().optional().describe("Note title. Defaults to 'Untitled'."),
+        folder_id: z.number().int().nullable().optional().describe("Folder id to place the note in, or null/root."),
         blocks: z
           .array(blockSchema)
           .optional()
@@ -147,7 +248,7 @@ export function registerNoteTools(server: McpServer, config: NotesConfig): void 
         text: z.string().optional().describe("Shortcut: content as a single paragraph. Ignored if `blocks` is given."),
       },
     },
-    async ({ title, blocks, text }) => {
+    async ({ title, folder_id, blocks, text }) => {
       try {
         const resolved: Block[] =
           blocks && blocks.length > 0
@@ -158,7 +259,7 @@ export function registerNoteTools(server: McpServer, config: NotesConfig): void 
 
         const created = await apiRequest<Note>(
           "api/notes",
-          { method: "POST", body: { title: title ?? "Untitled", blocks: withIds(resolved) } },
+          { method: "POST", body: { title: title ?? "Untitled", folder_id: folder_id ?? null, blocks: withIds(resolved) } },
           config,
         );
         return jsonResult(created);
@@ -179,16 +280,23 @@ export function registerNoteTools(server: McpServer, config: NotesConfig): void 
       inputSchema: {
         id: z.number().int().describe("The note id to update."),
         title: z.string().optional().describe("New title."),
+        folder_id: z
+          .number()
+          .int()
+          .nullable()
+          .optional()
+          .describe("Move note to this folder id. Use null to move it to root."),
         blocks: z
           .array(blockSchema)
           .optional()
           .describe("Full replacement content blocks (paragraph/list). Omit to keep existing."),
       },
     },
-    async ({ id, title, blocks }) => {
+    async ({ id, title, folder_id, blocks }) => {
       try {
         const body: Record<string, unknown> = {};
         if (title !== undefined) body.title = title;
+        if (folder_id !== undefined) body.folder_id = folder_id;
         if (blocks !== undefined) body.blocks = withIds(blocks);
         if (Object.keys(body).length === 0) {
           return errorResult("Nothing to update: provide `title` and/or `blocks`.");
