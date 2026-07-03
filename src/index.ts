@@ -56,17 +56,23 @@ async function runHTTP(): Promise<void> {
   app.get("/.well-known/oauth-protected-resource/*", (_req, res) => {
     res.json(protectedResourceMeta(`${MCP_SERVER_URL}/mcp`));
   });
+  const authorizationServerMeta = {
+    issuer: MCP_SERVER_URL,
+    authorization_endpoint: `${MCP_SERVER_URL}/authorize`,
+    token_endpoint: `${MCP_SERVER_URL}/token`,
+    registration_endpoint: `${MCP_SERVER_URL}/register`,
+    scopes_supported: SCOPES_SUPPORTED,
+    response_types_supported: ["code"],
+    grant_types_supported: ["authorization_code", "refresh_token"],
+    code_challenge_methods_supported: ["S256"],
+  };
+
+  app.get("/.well-known/oauth-authorization-server", (_req, res) => {
+    res.json(authorizationServerMeta);
+  });
+
   app.get("/.well-known/oauth-authorization-server/*", (_req, res) => {
-    res.json({
-      issuer: MCP_SERVER_URL,
-      authorization_endpoint: `${MCP_SERVER_URL}/authorize`,
-      token_endpoint: `${MCP_SERVER_URL}/token`,
-      registration_endpoint: `${MCP_SERVER_URL}/register`,
-      scopes_supported: SCOPES_SUPPORTED,
-      response_types_supported: ["code"],
-      grant_types_supported: ["authorization_code", "refresh_token"],
-      code_challenge_methods_supported: ["S256"],
-    });
+    res.json(authorizationServerMeta);
   });
 
   app.post("/token", (req, _res, next) => {
