@@ -10,9 +10,12 @@ Connection guide (for Claude):
 1. Log into your claude account
 2. Open settings -> Connectors -> Add -> Add custom connector
 3. Name the connector antyhing you want (recommended: NoNotes)
-4. Add the following MCP Server URL: ```https://nonotes-mcp.internship.aico.dev/mcp```
-5. Click Add
-6. Click Connect button
-7. Log in with your NoNotes account on the page you're redirected to
-8. Give claude the permissions it needs when it's asking for them in chat
-9. Enjoy!
+4. Add the following MCP Server URL:
+   ```
+   https://nonotes-mcp.internship.aico.dev/mcp
+   ```
+6. Click Add
+7. Click Connect button
+8. Log in with your NoNotes account on the page you're redirected to
+9. Give claude the permissions it needs when it's asking for them in chat
+10. Enjoy!
